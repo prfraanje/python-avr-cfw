@@ -38,6 +38,7 @@ print(cfw.data_meas)
 ```
 
 ## To be done
+* Document protocol (it's not that difficult, but documentation should be there!)
 * Add PID control
 * Simplify the creation of 'shared' variables / datastructures on both the AVR
   and the Python side.
