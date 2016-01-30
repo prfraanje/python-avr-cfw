@@ -42,9 +42,13 @@ print(cfw.data_meas)
 * Simplify the creation of 'shared' variables / datastructures on both the AVR
   and the Python side.
 * Work out a nice example and improve documentation 
+* Make an Arduino equivalent of avr_cfw.c
 * Promote the code such that it may be of use to others, may get feedback, and
   may be of inspiration to others to augment, extend to other platforms,
   improve, etc.
+* Extend to other (micro)controller platforms (PIC, but also Raspberry-pi,
+  BeagleBone Black, pcDuino, Intel Edison, ...)
+* Extend to other interfaces (sockets, zeromq, memory maps?, ...)
 
 ## Acknowledgements
 * [AVR-Programming](https://github.com/hexagon5un/AVR-Programming) by Elliot
