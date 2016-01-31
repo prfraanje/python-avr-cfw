@@ -1,16 +1,16 @@
-# Python - AVR Control FrameWork (python-avr-cfw)
+## Python - AVR Control FrameWork (python-avr-cfw) ##
 =================================================
 
 Framework for easy signal monitoring and getting / setting variables 
 in an AVR program from Python through a serial interface using 
 Z85 encoding.
 
-## Goal
+### Goal ###
 Provide a flexible, fast and easy to use data-acquisition and
 control interface between controller boards like AVR microcontrollers and
 Python.
 
-## Usage
+### Usage ###
 * Flash the file avr_cfw.c in the AVR microcontroller (hook up sensors /
   actuators and adjust the code if necessary)
 ```
@@ -37,7 +37,7 @@ print(cfw.sensor)
 print(cfw.data_meas)
 ```
 
-## To be done
+### To be done ###
 * Document protocol (it's not that difficult, but documentation should be there!)
 * Add PID control
 * Simplify the creation of 'shared' variables / datastructures on both the AVR
@@ -51,7 +51,7 @@ print(cfw.data_meas)
   BeagleBone Black, pcDuino, Intel Edison, ...)
 * Extend to other interfaces (sockets, zeromq, memory maps?, ...)
 
-## Acknowledgements
+### Acknowledgements ###
 * [AVR-Programming](https://github.com/hexagon5un/AVR-Programming) by Elliot
 Williams
 * [PyZMQ (for Z85.py)](https://github.com/zeromq/pyzmq)
