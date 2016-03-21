@@ -3,6 +3,7 @@
 #include <util/delay.h>
 #include <util/setbaud.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include "myutils.h"
 #include "z85.h"
 
@@ -23,11 +24,31 @@
 
 uint16_t readADC0(void);
 
+struct block {
+    //port not necessary anymore (?)
+    volatile uint8_t *port; // port
+    uint8_t  pin;        // pin number in port
+    uint16_t period;     // in number of samples
+    uint16_t duration;   // number of samples signal is high
+    uint8_t low;        // low value
+    uint8_t high;       // high value
+    uint16_t counter;    // current sample value
+    uint8_t value;       // current output value
+    }; 
+
+
+void block_wave(struct block *p);
+
+
+
 volatile uint16_t sensor;
+volatile uint16_t control;
 volatile uint16_t data_meas[DATASIZE];
 volatile uint16_t data_counter = 0x0000;
 volatile uint16_t counter = 0x0000;
 volatile uint8_t status = 0x00; // status bits
+
+struct block block0 = {&PORTB, PB1, 2000, 1000, 85, 170, 0}; 
 
 
 ISR(TIMER1_COMPA_vect) {
@@ -40,6 +61,8 @@ ISR(TIMER1_COMPA_vect) {
 
     sensor = readADC0();
 
+    block_wave(&block0);
+
     if bit_is_set(status,RECORD) {
         data_meas[data_counter] = sensor;
         data_counter++;
@@ -50,9 +73,17 @@ ISR(TIMER1_COMPA_vect) {
 }
 
 
+void initTimers(void) {
+    TCCR0A |= (1 << WGM01) | (1 << WGM00);   /* fast PWM mode */
+    TCCR0A |= (1 << COM0A1) ; /* clear output on compare */  
+    TCCR0B |= (1 << CS00);   /* no prescaling, run as fast as possible */
+    //TCCR0B |= (1 << CS01);   /* factor 8 prescaling */
+    }
+
 void initInterrupt1(void) {
     TCCR1B |= (1 << WGM12);   /* CTC mode (clear timer after match) */
-    TCCR1B |= (1 << CS12) | (0 << CS11) | (1 << CS10); /* scale clock to 16MHz/1024 = 16kHz */
+    TCCR1B |= (1 << CS12) | (1 << CS10); /* scale clock to 16MHz/1024 = 16kHz */
+//    TCCR1B |= (0 << CS12) | (1 << CS11) | (1 << CS10); /* scale clock to 16MHz/64 = = 250kHz */
     /* OCR1AH = 0x40;           /1* set count value most significant byte *1/ */ 
     OCR1AH = 0x00;           /* set count value most significant byte */ 
     OCR1AL = 0x0f;           /* set count value most least byte */ 
@@ -94,6 +125,26 @@ void initUSART(void) {
 
     }
 
+
+void block_wave(struct block *p) {
+    if (p->counter<p->duration) {
+//        *(p->port) |= (1 << p->pin);
+        OCR0A = p->high;          
+        p->value = p->high;
+        }
+    else {
+//        *(p->port) &= ~(1 << p->pin);
+        OCR0A = p->low;
+        p->value = p->low;
+        }
+    if (p->counter>=p->period-1) {
+        p->counter = 0;
+        }
+    else {
+        p->counter++;
+        }
+    }
+
 /* Protocol being used
 Because Z85 encoding is used for transferring data on serial bus
 the data packets being send and received must be multiples of 4 bytes.
@@ -115,21 +166,23 @@ B0       B1       B2       B3
  */
 
 int main(void) {
-    char sel;
     uint8_t command[4] = {0x00, 0x00, 0x00, 0x00};
     uint8_t response[4] = {0x00, 0x00, 0x00, 0x00};
  
+    DDRB  |= (1 << PB0); /* enable PB0 as output */ 
+    DDRB  |= (1 << PB1); /* enable PB1 as output */ 
+    DDRB  |= (1 << PB7); /* enable PB7 as output */ 
+
 
     initInterrupt1();
+    initTimers();
     initADC0();
     initData();
     initUSART();
 
-    DDRB  |= (1 << PB0); /* enable PB0 as output */ 
-    DDRB  |= (1 << PB1); /* enable PB1 as output */ 
     PORTB &= ~(1 << PB0); /* led off on pin B0 */
     PORTB &= ~(1 << PB1); /* led off on pin B1 */
-
+    
     while (1) {
         receive_and_decode_Z85(command,sizeof(command));
         /* parse command */
@@ -160,6 +213,22 @@ int main(void) {
                     ((uint16_t*)response)[1] = sensor;
                     encode_Z85_and_transmit(response,sizeof(response));
                     break;
+                case 0x05: // get period of block wave 
+                    ((uint16_t*)response)[1] = block0.period;
+                    encode_Z85_and_transmit(response,sizeof(response));
+                    break;
+                case 0x06: // get duration of block wave 
+                    ((uint16_t*)response)[1] = block0.duration;
+                    encode_Z85_and_transmit(response,sizeof(response));
+                    break;
+                case 0x07: // get low value of block wave 
+                    response[3] = block0.low;
+                    encode_Z85_and_transmit(response,sizeof(response));
+                    break;
+                case 0x08: // get duration of block wave 
+                    response[3] = block0.high;
+                    encode_Z85_and_transmit(response,sizeof(response));
+                    break;
                 default: // set response to zero, but don't receive anything 
                     response[0] = 0x00;
                     response[1] = 0x00;
@@ -175,14 +244,25 @@ int main(void) {
                 case 0x02: // get data_counter value
                     data_counter = (command[2] << 8) + command[3];
                     break;
+                /* case 0x03: // set data_meas */
+                /*     if bit_is_set(command[3],0){ */
+                /*            PORTB |= (1 << PB1); /1* led on pin B1 *1/ */
+                /*         } */
+                /*     else { */
+                /*            PORTB &= ~(1 << PB1); /1* led off pin B1 *1/ */
+                /*         } */
+                /*     break; */
+                case 0x05: // get block perdiod value
+                    block0.period = (command[2] << 8) + command[3];
                     break;
-                case 0x03: // set data_meas
-                    if bit_is_set(command[3],0){
-                           PORTB |= (1 << PB1); /* led on pin B1 */
-                        }
-                    else {
-                           PORTB &= ~(1 << PB1); /* led off pin B1 */
-                        }
+                case 0x06: // get block duration value
+                    block0.duration = (command[2] << 8) + command[3];
+                    break;
+                case 0x07: // get block low value
+                    block0.low =  command[3];
+                    break;
+                case 0x08: // get block high value
+                    block0.high = command[3];
                     break;
                 default: // set response to zero, but don't receive anything 
                     response[0] = 0x00;

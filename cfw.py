@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from matplotlib import animation
 from time import sleep
 import struct
+from pylab import ion
 #from seaborn import *
 
 PORT     = "/dev/ttyACM0"
@@ -20,6 +21,7 @@ TIMEOUT  = None
 
 class Cfw(object):
     def __init__(self,port=PORT,baudrate=BAUDRATE,timeout=TIMEOUT):
+        ion() # make plots (monitor) interactive, running on background
         self.__serial_lock = 0 # 1 to lock serial interface
         self.__pause_monitor = 0 # 1 to pause monitor
         self.__serial = serial.Serial(port,baudrate,timeout=timeout)
@@ -30,6 +32,10 @@ class Cfw(object):
         self.__data_counter = self.data_counter
         self.__data_meas = self.data_meas
         self.__sensor = self.sensor
+        self.__block_period = self.block_period;
+        self.__block_duration = self.block_duration;
+        self.__block_low = self.block_low;
+        self.__block_high = self.block_high;
         self.__pinb1 = 0
         self.__monitor = np.zeros((300,1))
 
@@ -119,6 +125,77 @@ class Cfw(object):
         self.__serial_lock = 0
         return self.__sensor
 
+    @property
+    def block_period(self):
+        """load block_period"""
+        while(self.__serial_lock): sleep(0.001)
+        self.__serial_lock = 1
+        encode_Z85_and_transmit(self.__serial,b'\x01\x05\x00\x00')
+        self.__block_period = struct.unpack("<2H",receive_and_decode_Z85(self.__serial,4))[1]
+        self.__serial_lock = 0
+        return self.__block_period
+
+    @block_period.setter
+    def block_period(self,val):
+        command = b'\x00\x05'+struct.pack(">1H",val)
+        while(self.__serial_lock): sleep(0.001)
+        self.__serial_lock = 1
+        encode_Z85_and_transmit(self.__serial,command)
+        self.__serial_lock = 0
+
+    @property
+    def block_duration(self):
+        """load block_duration"""
+        while(self.__serial_lock): sleep(0.001)
+        self.__serial_lock = 1
+        encode_Z85_and_transmit(self.__serial,b'\x01\x06\x00\x00')
+        self.__block_duration = struct.unpack("<2H",receive_and_decode_Z85(self.__serial,4))[1]
+        self.__serial_lock = 0
+        return self.__block_duration
+
+    @block_duration.setter
+    def block_duration(self,val):
+        command = b'\x00\x06'+struct.pack(">1H",val)
+        while(self.__serial_lock): sleep(0.001)
+        self.__serial_lock = 1
+        encode_Z85_and_transmit(self.__serial,command)
+        self.__serial_lock = 0
+
+    @property
+    def block_low(self):
+        """load block_low"""
+        while(self.__serial_lock): sleep(0.001)
+        self.__serial_lock = 1
+        encode_Z85_and_transmit(self.__serial,b'\x01\x07\x00\x00')
+        self.__block_low = struct.unpack("<4B",receive_and_decode_Z85(self.__serial,4))[3]
+        self.__serial_lock = 0
+        return self.__block_low
+
+    @block_low.setter
+    def block_low(self,val):
+        command = b'\x00\x07\x00'+struct.pack("1B",val)
+        while(self.__serial_lock): sleep(0.001)
+        self.__serial_lock = 1
+        encode_Z85_and_transmit(self.__serial,command)
+        self.__serial_lock = 0
+
+    @property
+    def block_high(self):
+        """load block_high"""
+        while(self.__serial_lock): sleep(0.001)
+        self.__serial_lock = 1
+        encode_Z85_and_transmit(self.__serial,b'\x01\x08\x00\x00')
+        self.__block_high = struct.unpack("<4B",receive_and_decode_Z85(self.__serial,4))[3]
+        self.__serial_lock = 0
+        return self.__block_high
+
+    @block_high.setter
+    def block_high(self,val):
+        command = b'\x00\x08\x00'+struct.pack("1B",val)
+        while(self.__serial_lock): sleep(0.001)
+        self.__serial_lock = 1
+        encode_Z85_and_transmit(self.__serial,command)
+        self.__serial_lock = 0
 
     @property
     def pinb1(self):
