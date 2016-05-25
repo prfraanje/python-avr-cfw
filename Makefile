@@ -6,6 +6,8 @@
 
 # MCU   = atmega168p
 MCU   = atmega2560
+#MCU   = m328p
+#MCU   = atmega328p
 # F_CPU = 1000000UL  
 F_CPU = 16000000UL  
 # BAUD  = 9600UL
@@ -28,6 +30,9 @@ LIBDIR =
 
 # PROGRAMMER_TYPE = usbtiny
 PROGRAMMER_TYPE = stk500v2 
+#PROGRAMMER_TYPE = avrisp
+#PROGRAMMER_TYPE = avrispmkII
+#PROGRAMMER_TYPE = arduino
 # extra arguments to avrdude: baud rate, chip type, -F flag, etc.
 #PROGRAMMER_ARGS = -P /dev/ttyACM0 -b 115200 -vvvv
 PROGRAMMER_ARGS = -P /dev/ttyACM0 -b 115200
