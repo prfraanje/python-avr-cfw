@@ -64,6 +64,7 @@ class Cfw(object):
                 repeat=True,blit=False)
         plt.show()
 
+
     @property
     def serial_lock(self):
         return self.__serial_lock
@@ -433,6 +434,10 @@ class Cfw(object):
         self.__serial_lock = 0
 
     @property
+    def monitor(self):
+        return self.__monitor
+
+    @property
     def pause_monitor(self):
         return self.__pause_monitor
     @pause_monitor.setter
@@ -459,7 +464,6 @@ class Cfw(object):
             self.__monitor = np.vstack((self.__monitor[1:],self.sensor))
             self.__line.set_ydata(self.__monitor)
         return self.__line,
-
 
     def close(self):
         while(self.__serial_lock): sleep(0.001)

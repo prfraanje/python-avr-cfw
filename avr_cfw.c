@@ -204,6 +204,7 @@ void PID_calc(void) {
    if (PID0.error_sum < -8000) PID0.error_sum = -8000;
 
    PID0.control = (uint8_t) ( ( (int32_t)PID0.Kp*PID0.error  + (int32_t)PID0.Ki * PID0.error_sum +  (int32_t)PID0.Kd * (PID0.error - PID0.error_prev)) / 256 ); 
+   PID0.control += PID0.offset;
 
    /* PID0.control_p = ( (int32_t)PID0.Kp*PID0.error / 256 ); */
    /* PID0.control_i = ( (int32_t)PID0.Ki * PID0.error_sum / 256); */
