@@ -27,7 +27,7 @@ def encode(rawbytes):
     if len(rawbytes) % 4:
         raise ValueError("length must be multiple of 4, not %i" % len(rawbytes))
     
-    nvalues = len(rawbytes) / 4
+    nvalues = int(len(rawbytes) / 4)
     
     values = struct.unpack('>%dI' % nvalues, rawbytes)
     encoded = []
@@ -46,7 +46,7 @@ def decode(z85bytes):
     if len(z85bytes) % 5:
         raise ValueError("Z85 length must be multiple of 5, not %i" % len(z85bytes))
     
-    nvalues = len(z85bytes) / 5
+    nvalues = int( len(z85bytes) / 5 )
     values = []
     for i in range(0, len(z85bytes), 5):
         value = 0
