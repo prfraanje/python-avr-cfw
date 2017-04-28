@@ -13,9 +13,10 @@ from time import sleep
 import struct
 from pylab import ion
 #from seaborn import *
-from Threading import Lock
+from threading import Lock
 
-PORT     = "/dev/ttyACM1"
+#PORT     = "/dev/ttyACM1"
+PORT     = "/dev/ttyACM0"
 BAUDRATE = 115200
 TIMEOUT  = None
 
