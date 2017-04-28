@@ -1,28 +1,36 @@
-""" 
+"""
 Control FrameWork (CFW)
 """
 
 from __future__ import absolute_import, division, print_function
 
+import struct
+from threading import Lock
+from time import sleep
 import serial
 from serial_z85 import *
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import animation
-from time import sleep
-import struct
-from pylab import ion
-#from seaborn import *
-from threading import Lock
 
-#PORT     = "/dev/ttyACM1"
+try:
+    window_handler = 'pyqtgraph'
+    from pyqtgraph.Qt import QtCore, QtGui
+    import pyqtgraph as pg
+    pg.setConfigOption('background', 'w')
+    pg.setConfigOption('foreground', 'k')
+except ImportError:
+    window_handler = 'matplotlib'
+    import matplotlib.pyplot as plt
+    from matplotlib import animation
+    from pylab import ion
+    #from seaborn import *
+
 PORT     = "/dev/ttyACM0"
 BAUDRATE = 115200
 TIMEOUT  = None
+MONITOR_SIZE = 300
 
 class Cfw(object):
     def __init__(self,port=PORT,baudrate=BAUDRATE,timeout=TIMEOUT):
-        ion() # make plots (monitor) interactive, running on background
         self.__serial_lock = Lock() # 1 to lock serial interface
         self.__pause_monitor = 0 # 1 to pause monitor
         self.__serial = serial.Serial(port,baudrate,timeout=timeout)
@@ -50,20 +58,50 @@ class Cfw(object):
         self.__offset = self.offset
         self.__error = self.error
         self.__pinb1 = 0
-        self.__monitor = np.zeros((300,1))
+        self.__monitor = np.zeros(MONITOR_SIZE)
 
-        # First set up the figure, the axis, and the plot element we want to animate
-        self.__fig = plt.figure('monitor')
-        self.__ax = plt.axes(xlim=(0, len(self.__monitor)-1), ylim=(0,2**10))
-        self.__ax.grid(True)
-        self.__line, = self.__ax.plot(self.__monitor, lw=2)
+        if window_handler == 'pyqtgraph':
+            self.__win = pg.GraphicsWindow(title='Monitor')
+            pg.setConfigOptions(antialias=True)
+            self.__plot = self.__win.addPlot()
+            self.__plot.showGrid(x=True,y=True)
+            self.__plot.enableAutoRange('xy', True)
+            #self.__curve = self.__plot.plot(pen=pg.mkPen('b',width=2))
+            self.__curve = self.__plot.plot(pen='b')
+            self.__timer = QtCore.QTimer()
+            self.__timer.timeout.connect(self.__update_pyqtgraph)
+            # argument of start is refresh interval in milliseconds
+            self.__timer.start(20)
+        else:
+            ion() # make plots (monitor) interactive, running on background
+            # First set up the figure, the axis, and the plot element we want to animate
+            self.__fig = plt.figure('monitor')
+            self.__ax = plt.axes(xlim=(0, len(self.__monitor)-1), ylim=(0,2**10))
+            self.__ax.grid(True)
+            self.__line, = self.__ax.plot(self.__monitor, lw=2)
 
-        # call the animator.  blit=True means only re-draw the parts that have changed.
-        self.__anim = animation.FuncAnimation(self.__fig, self.__animate,
-                init_func=self.__init_graph, interval=20,
-                repeat=True,blit=False)
-        plt.show()
+            # call the animator.  blit=True means only re-draw the parts that have changed.
+            # argument interval is refresh interval in milliseconds
+            self.__anim = animation.FuncAnimation(self.__fig, self.__animate,
+                    init_func=self.__init_graph, interval=20,
+                    repeat=True,blit=False)
+            plt.show()
 
+    def __update_pyqtgraph(self):
+        self.__monitor = np.hstack((self.__monitor[1:],self.sensor))
+        self.__curve.setData(self.__monitor)
+
+    def __init_graph(self):
+        # self.__line.set_ydata(self.__monitor)
+        return self.__line,
+
+    def __animate(self,i):
+        if (self.pause_monitor == 0):
+            # self.__monitor = np.hstack((self.__monitor[1:],self.encoder))
+            # self.__monitor = np.hstack((self.__monitor[1:],self.enc_time))
+            self.__monitor = np.hstack((self.__monitor[1:],self.sensor))
+            self.__line.set_ydata(self.__monitor)
+        return self.__line,
 
     @property
     def serial_lock(self):
@@ -374,20 +412,13 @@ class Cfw(object):
         return self.__serial
 
 
-    def __init_graph(self):
-        # self.__line.set_ydata(self.__monitor)
-        return self.__line,
-
-    def __animate(self,i):
-        if (self.pause_monitor == 0):
-            # self.__monitor = np.vstack((self.__monitor[1:],self.encoder))
-            # self.__monitor = np.vstack((self.__monitor[1:],self.enc_time))
-            self.__monitor = np.vstack((self.__monitor[1:],self.sensor))
-            self.__line.set_ydata(self.__monitor)
-        return self.__line,
 
     def close(self):
+        if window_handler == 'pyqtgraph':
+            self.__timer.stop()
+            self.__win.close()
+        else:
+            plt.close(self.__fig)
         with self.__serial_lock:
             self.__serial.close()
-        plt.close(self.__fig)
 
