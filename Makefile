@@ -29,13 +29,13 @@ LIBDIR =
 ##########------------------------------------------------------##########
 
 # PROGRAMMER_TYPE = usbtiny
-#PROGRAMMER_TYPE = stk500v2 
+PROGRAMMER_TYPE = stk500v2 
 #PROGRAMMER_TYPE = avrisp
-PROGRAMMER_TYPE = avrispmkII
+#PROGRAMMER_TYPE = avrispmkII
 #PROGRAMMER_TYPE = arduino
 # extra arguments to avrdude: baud rate, chip type, -F flag, etc.
 #PROGRAMMER_ARGS = -P /dev/ttyACM0 -b 115200 -vvvv
-PROGRAMMER_ARGS = -P /dev/ttyACM0 -b 115200
+PROGRAMMER_ARGS = -P /dev/ttyACM1 -b 115200
 #PROGRAMMER_ARGS = -P /dev/ttyACM1 -b 38400
 
 ##########------------------------------------------------------##########
